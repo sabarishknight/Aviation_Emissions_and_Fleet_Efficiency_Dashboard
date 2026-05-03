@@ -1,367 +1,407 @@
-# ============================================================
-# BUSINESS ECONOMETRICS MASTER CHEAT SHEET - PYTHON
-# FULL END-SEM REFERENCE
-# ============================================================
-
-# ============================================================
-# SECTION 1: INSTALL LIBRARIES (Run once if needed)
-# ============================================================
-
-# pip install pandas numpy matplotlib seaborn scipy statsmodels scikit-learn openpyxl linearmodels
-
-# ============================================================
-# SECTION 2: IMPORT LIBRARIES
-# ============================================================
+#
+#
+#
+#
+#
+#
+#
+#
+# 
+# SECTION 1
+# 
+# pip install pandas numpy matplotlib seaborn scipy statsmodels scikit-learn openpyxl xlrd
 
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-
-from scipy import stats
+import seaborn as sns
 
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 
+from scipy import stats
+from scipy.stats import t as tdist
+
+from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-from statsmodels.stats.diagnostic import het_breuschpagan, het_white, linear_reset, acorr_breusch_godfrey
+from statsmodels.stats.diagnostic import (
+    het_white,
+    het_breuschpagan,
+    linear_reset,
+    acorr_breusch_godfrey
+)
+
 from statsmodels.stats.stattools import durbin_watson
+from statsmodels.stats.anova import anova_lm
 
-from sklearn.metrics import confusion_matrix, accuracy_score
-from sklearn.model_selection import train_test_split
 
-from patsy import dmatrix
 
-# ============================================================
-# SECTION 3: IMPORT DATA
-# ============================================================
-
-# CSV
+# ==========================================================================================
+# SECTION 2: IMPORT DATA
+# ==========================================================================================
+# CSV:
 data = pd.read_csv("dataset.csv")
 
-# Excel
-data = pd.read_excel("dataset.xlsx")
+# Excel:
+# data = pd.read_excel("dataset.xlsx")
 
-# TXT
-data = pd.read_table("dataset.txt")
-
-# URL
-url = "https://raw.githubusercontent.com/yourfile.csv"
-data = pd.read_csv(url)
-
-# ============================================================
-# SECTION 4: BASIC INSPECTION
-# ============================================================
-
-print(data.head())
-print(data.tail())
+print("HEAD:\n", data.head())
+print("SHAPE:", data.shape)
+print("INFO:")
 print(data.info())
-print(data.describe())
-print(data.shape)
-print(data.columns)
+print("SUMMARY:\n", data.describe(include="all"))
 
-# Missing values
-print(data.isnull().sum())
+print("MISSING VALUES:\n", data.isnull().sum())
 
-# Remove missing rows
 data = data.dropna()
 
-# ============================================================
-# SECTION 5: MODIFY VARIABLES
-# ============================================================
 
-# Log transformation
-data["logY"] = np.log(data["Y"])
 
-# Binary variable
-data["high_income"] = np.where(data["income"] == ">50K", 1, 0)
+# ==========================================================================================
+# SECTION 3: DESCRIPTIVE STATISTICS / COUNTS / FRACTIONS
+# ==========================================================================================
 
-# Quadratic term
-data["X_sq"] = data["X"] ** 2
+# Mean / Median / SD / Min / Max
+for col in data.select_dtypes(include=np.number).columns:
+    print(f"\n--- {col} ---")
+    print("Mean:", data[col].mean())
+    print("Median:", data[col].median())
+    print("Std:", data[col].std())
+    print("Min:", data[col].min())
+    print("Max:", data[col].max())
 
-# ============================================================
-# SECTION 6: DESCRIPTIVE STATISTICS
-# ============================================================
+# Generic:
+# sum(data["X"] == 0)
+# data["dummy"].mean()
 
-print(data.describe())
+# Example subgroup:
+# men = data[data["female"] == 0]
+# women = data[data["female"] == 1]
 
-print("Mean:", data["Y"].mean())
-print("Median:", data["Y"].median())
-print("SD:", data["Y"].std())
-print("Min:", data["Y"].min())
-print("Max:", data["Y"].max())
+# Fraction:
+# men["abvavg"].mean()
+# women["abvavg"].mean()
 
-# Conditional count
-print((data["X"] == 0).sum())
+# Cross-tab:
+# pd.crosstab(data["female"], data["abvavg"], margins=True)
 
-# Frequency table
-print(data["gender"].value_counts())
 
-# ============================================================
-# SECTION 7: VISUALIZATION
-# ============================================================
 
-# Scatter plot
-plt.scatter(data["X"], data["Y"])
-plt.xlabel("X")
-plt.ylabel("Y")
+# ==========================================================================================
+# SECTION 4: VISUALIZATION
+# ==========================================================================================
+
+# Scatter:
+# plt.scatter(data["X"], data["Y"])
+# plt.xlabel("X")
+# plt.ylabel("Y")
+# plt.title("Relationship")
+# plt.show()
+
+# Histogram:
+# plt.hist(data["Y"], bins=30)
+# plt.title("Distribution")
+# plt.show()
+
+# Boxplot:
+# sns.boxplot(y=data["Y"])
+# plt.show()
+
+# Correlation:
+print("\nCORRELATION MATRIX:\n", data.corr(numeric_only=True))
+
+sns.heatmap(data.corr(numeric_only=True), annot=True, cmap="coolwarm")
+plt.title("Correlation Matrix")
 plt.show()
 
-# Histogram
-plt.hist(data["Y"], bins=30)
-plt.xlabel("Y")
-plt.show()
 
-# Boxplot
-plt.boxplot(data["Y"])
-plt.show()
 
-# Correlation matrix
-print(data.corr(numeric_only=True))
+# ==========================================================================================
+# SECTION 5: LATEX EQUATION BANK
+# ==========================================================================================
 
-# ============================================================
-# SECTION 8: SIMPLE LINEAR REGRESSION
-# PRF: Y = β0 + β1X + u
-# ============================================================
+# SIMPLE LINEAR:
+# Y_i = \beta_0 + \beta_1 X_i + u_i
 
-X = sm.add_constant(data["X"])
-model_simple = sm.OLS(data["Y"], X).fit()
+# SAMPLE REGRESSION:
+# \hat{Y}_i = b_0 + b_1 X_i
 
-print(model_simple.summary())
+# LOG-LINEAR:
+# \ln(Y_i) = \beta_0 + \beta_1 X_i + u_i
 
-# Residuals
-data["residuals"] = model_simple.resid
+# LINEAR-LOG:
+# Y_i = \beta_0 + \beta_1 \ln(X_i) + u_i
 
-# Fitted values
-data["fitted"] = model_simple.fittedvalues
+# LOG-LOG:
+# \ln(Y_i) = \beta_0 + \beta_1 \ln(X_i) + u_i
 
-# ============================================================
-# SECTION 9: MULTIPLE REGRESSION
-# ============================================================
+# MULTIPLE:
+# Y_i = \beta_0 + \beta_1 X_{1i} + \beta_2 X_{2i} + ... + u_i
 
-X_multi = data[["X1", "X2", "X3"]]
-X_multi = sm.add_constant(X_multi)
+# LOGIT:
+# \log\left(\frac{P_i}{1-P_i}\right) = \beta_0 + \beta_1 X_{1i} + ... + u_i
 
-model_multiple = sm.OLS(data["Y"], X_multi).fit()
 
-print(model_multiple.summary())
 
-# ============================================================
-# SECTION 10: FUNCTIONAL FORMS
-# ============================================================
+# ==========================================================================================
+# SECTION 6: SIMPLE REGRESSION
+# ==========================================================================================
 
-# Linear-Linear
-model_ll = smf.ols("Y ~ X", data=data).fit()
+# Example:
+# model_simple = smf.ols("np.log(wage) ~ exper", data=data).fit()
 
-# Log-Linear
-model_loglin = smf.ols("np.log(Y) ~ X", data=data).fit()
+# Generic:
+# model_simple = smf.ols("Y ~ X", data=data).fit()
 
-# Linear-Log
-model_linlog = smf.ols("Y ~ np.log(X)", data=data).fit()
+# print(model_simple.summary())
 
-# Log-Log
-model_loglog = smf.ols("np.log(Y) ~ np.log(X)", data=data).fit()
+# Residuals:
+# data["resid"] = model_simple.resid
 
-print(model_ll.summary())
-print(model_loglin.summary())
-print(model_linlog.summary())
-print(model_loglog.summary())
+# Generic Interpretation:
+# “The coefficient indicates the expected change in Y from a one-unit increase in X.”
+# “If log-linear, beta*100 approximates percentage change.”
+# “p < 0.05 implies statistical significance.”
 
-# ============================================================
-# SECTION 11: GOODNESS OF FIT
-# ============================================================
 
-print("R²:", model_multiple.rsquared)
-print("Adjusted R²:", model_multiple.rsquared_adj)
 
-print("AIC:", model_multiple.aic)
-print("BIC:", model_multiple.bic)
+# ==========================================================================================
+# SECTION 7: SEPARATE GROUP REGRESSION (MEN/WOMEN TYPE)
+# ==========================================================================================
 
-# ============================================================
-# SECTION 12: ADD VARIABLES TO BASE MODEL
-# ============================================================
+# men_model = smf.ols("lwage ~ belavg + abvavg", data=men).fit()
+# women_model = smf.ols("lwage ~ belavg + abvavg", data=women).fit()
 
-base_model = smf.ols("Y ~ X1", data=data).fit()
+# Single comparison table:
+# results_table = pd.DataFrame({
+#     "Men_Coeff": men_model.params,
+#     "Men_p": men_model.pvalues,
+#     "Women_Coeff": women_model.params,
+#     "Women_p": women_model.pvalues
+# })
+# print(results_table)
 
-extended_model = smf.ols("Y ~ X1 + X2 + X3", data=data).fit()
 
-print(base_model.summary())
-print(extended_model.summary())
 
-# ============================================================
-# SECTION 13: HYPOTHESIS TESTING
-# ============================================================
+# ==========================================================================================
+# SECTION 8: HYPOTHESIS TESTING
+# ==========================================================================================
 
-# Joint F-test
-print(extended_model.f_test("X2=0, X3=0"))
+# H0: β1 = 0
+# H1: β1 ≠ 0
 
-# ============================================================
-# SECTION 14: DUMMY VARIABLES
-# ============================================================
+# One-sided:
+# H1: β1 < 0
 
-# Automatically handles categorical vars with C()
-dummy_model = smf.ols("Y ~ X1 + C(gender) + C(season)", data=data).fit()
+# One-sided p:
+# p_one = model_simple.pvalues["X"] / 2
 
-print(dummy_model.summary())
+# Coefficient different from value:
+# H0: β = -1
+# b = model.params["X"]
+# se = model.bse["X"]
+# t = (b + 1) / se
+# p = 2 * tdist.sf(abs(t), model.df_resid)
 
-# ============================================================
-# SECTION 15: INTERACTION TERMS
-# ============================================================
+# Joint:
+# model_full.f_test("X2=0, X3=0")
 
-interaction_model = smf.ols("Y ~ X1 * X2", data=data).fit()
+# Generic:
+# “Reject H0 if p-value < 0.05.”
+# “Fail to reject H0 implies insufficient evidence.”
 
-print(interaction_model.summary())
 
-# ============================================================
-# SECTION 16: QUADRATIC MODEL
-# ============================================================
 
-quadratic_model = smf.ols("Y ~ X + I(X**2)", data=data).fit()
+# ==========================================================================================
+# SECTION 9: MULTIPLE REGRESSION / ADD VARIABLES
+# ==========================================================================================
 
-print(quadratic_model.summary())
+# base_model = smf.ols("Y ~ X1", data=data).fit()
 
-# ============================================================
-# SECTION 17: MULTICOLLINEARITY (VIF)
-# ============================================================
+# full_model = smf.ols(
+#     "Y ~ X1 + X2 + X3 + X4",
+#     data=data
+# ).fit()
 
-X_vif = sm.add_constant(data[["X1", "X2", "X3"]])
+# print(base_model.summary())
+# print(full_model.summary())
 
-vif_data = pd.DataFrame()
-vif_data["Variable"] = X_vif.columns
-vif_data["VIF"] = [variance_inflation_factor(X_vif.values, i)
-                   for i in range(X_vif.shape[1])]
+# Compare:
+# anova_lm(base_model, full_model)
 
-print(vif_data)
+# Generic:
+# “Additional predictors improve model if jointly significant.”
+# “Coefficient changes may suggest omitted variable bias.”
 
-# ============================================================
-# SECTION 18: HETEROSCEDASTICITY
-# ============================================================
 
-# Residual plot
-plt.scatter(model_multiple.fittedvalues, model_multiple.resid)
-plt.axhline(y=0)
-plt.xlabel("Fitted")
-plt.ylabel("Residuals")
-plt.show()
 
-# Breusch-Pagan
-bp_test = het_breuschpagan(model_multiple.resid, model_multiple.model.exog)
-print("Breusch-Pagan:", bp_test)
+# ==========================================================================================
+# SECTION 10: GOODNESS OF FIT
+# ==========================================================================================
 
-# White Test
-white_test = het_white(model_multiple.resid, model_multiple.model.exog)
-print("White Test:", white_test)
+# print("R²:", full_model.rsquared)
+# print("Adjusted R²:", full_model.rsquared_adj)
+# print("AIC:", full_model.aic)
+# print("BIC:", full_model.bic)
 
-# Robust SE
-robust_model = model_multiple.get_robustcov_results()
-print(robust_model.summary())
+# Generic:
+# “R² measures explained variation.”
+# “Adjusted R² adjusts for added regressors.”
 
-# ============================================================
-# SECTION 19: AUTOCORRELATION
-# ============================================================
 
-# Durbin-Watson
-print("Durbin-Watson:", durbin_watson(model_multiple.resid))
 
-# Breusch-Godfrey
-bg_test = acorr_breusch_godfrey(model_multiple)
-print("Breusch-Godfrey:", bg_test)
+# ==========================================================================================
+# SECTION 11: DUMMY VARIABLES
+# ==========================================================================================
 
-# ============================================================
-# SECTION 20: MISSPECIFICATION (RESET)
-# ============================================================
+# model_dummy = smf.ols("Y ~ X1 + C(category)", data=data).fit()
 
-reset_test = linear_reset(model_multiple, power=2, use_f=True)
-print(reset_test)
+# Generic:
+# “Dummy coefficient measures difference from omitted reference group.”
+# “k categories require k-1 dummies.”
+# “Avoid dummy variable trap.”
 
-# ============================================================
-# SECTION 21: SPLINES
-# ============================================================
 
-transformed_x = dmatrix("bs(X, df=4, degree=3)", data, return_type='dataframe')
 
-spline_model = sm.OLS(data["Y"], transformed_x).fit()
+# ==========================================================================================
+# SECTION 12: INTERACTION + QUADRATIC
+# ==========================================================================================
 
-print(spline_model.summary())
+# Interaction:
+# model_inter = smf.ols("Y ~ X1 * X2", data=data).fit()
 
-# ============================================================
-# SECTION 22: LINEAR PROBABILITY MODEL (LPM)
-# ============================================================
+# Quadratic:
+# model_quad = smf.ols("Y ~ X + I(X**2)", data=data).fit()
 
-lpm_model = smf.ols("binaryY ~ X1 + X2 + X3", data=data).fit()
+# Generic:
+# “Interaction captures conditional marginal effects.”
+# “Quadratic term captures nonlinear relationship.”
 
-print(lpm_model.summary())
 
-# ============================================================
-# SECTION 23: LOGISTIC REGRESSION
-# ============================================================
 
-logit_model = smf.logit("binaryY ~ X1 + X2 + X3", data=data).fit()
+# ==========================================================================================
+# SECTION 13: MULTICOLLINEARITY
+# ==========================================================================================
 
-print(logit_model.summary())
+# X = full_model.model.exog
+# vif = pd.DataFrame()
+# vif["Variable"] = full_model.model.exog_names
+# vif["VIF"] = [variance_inflation_factor(X, i) for i in range(X.shape[1])]
+# print(vif)
 
-# Odds Ratios
-print(np.exp(logit_model.params))
+# Generic:
+# “VIF > 10 suggests serious multicollinearity.”
 
-# Predicted probabilities
-pred_probs = logit_model.predict(data)
 
-# Classification cutoff
-pred_class = np.where(pred_probs > 0.5, 1, 0)
 
-# Confusion Matrix
-cm = confusion_matrix(data["binaryY"], pred_class)
+# ==========================================================================================
+# SECTION 14: HETEROSCEDASTICITY
+# ==========================================================================================
 
-print("Confusion Matrix:\n", cm)
+# White:
+# white = het_white(full_model.resid, full_model.model.exog)
 
-# Accuracy
-print("Accuracy:", accuracy_score(data["binaryY"], pred_class))
+# BP:
+# bp = het_breuschpagan(full_model.resid, full_model.model.exog)
 
-# Sensitivity
-sensitivity = cm[1,1] / (cm[1,1] + cm[1,0])
-print("Sensitivity:", sensitivity)
+# Generic:
+# H0: Homoscedasticity
+# “Rejecting H0 suggests heteroscedasticity.”
+# “Robust standard errors may be preferred.”
 
-# Specificity
-specificity = cm[0,0] / (cm[0,0] + cm[0,1])
-print("Specificity:", specificity)
 
-# ============================================================
-# SECTION 24: RESIDUAL DIAGNOSTICS
-# ============================================================
 
-# Histogram
-plt.hist(model_multiple.resid, bins=30)
-plt.title("Residual Histogram")
-plt.show()
+# ==========================================================================================
+# SECTION 15: AUTOCORRELATION
+# ==========================================================================================
 
-# QQ Plot
-sm.qqplot(model_multiple.resid, line='45')
-plt.show()
+# DW:
+# dw = durbin_watson(full_model.resid)
 
-# ============================================================
-# SECTION 25: SAVE OUTPUT
-# ============================================================
+# BG:
+# bg = acorr_breusch_godfrey(full_model)
 
-data.to_csv("cleaned_data.csv", index=False)
+# Generic:
+# “DW ≈ 2 implies no autocorrelation.”
+# “BG p < 0.05 indicates serial correlation.”
 
-# ============================================================
-# SECTION 26: UNIVERSAL INTERPRETATION
-# ============================================================
 
-# Linear:
-# β1 = one unit increase in X changes Y by β1 units
 
-# Log-Linear:
-# β1 * 100 = approximate % change in Y
+# ==========================================================================================
+# SECTION 16: MISSPECIFICATION
+# ==========================================================================================
 
-# Linear-Log:
-# 1% increase in X changes Y by β1/100 units
+# RESET:
+# reset = linear_reset(full_model, power=2)
 
-# Log-Log:
-# β1 = elasticity (% change in X -> % change in Y)
+# Generic:
+# H0: Correct specification
+# “Rejecting H0 implies omitted variables or wrong functional form.”
 
-# Logistic:
-# exp(β1) = odds ratio
 
-# ============================================================
-# END OF MASTER CHEAT SHEET
-# ============================================================
+
+# ==========================================================================================
+# SECTION 17: SPLINES
+# ==========================================================================================
+
+# data["spline"] = np.maximum(data["X"] - 10, 0)
+
+# spline_model = smf.ols("Y ~ X + spline", data=data).fit()
+
+# Generic:
+# “Spline permits piecewise nonlinear flexibility.”
+
+
+
+# ==========================================================================================
+# SECTION 18: LOGISTIC REGRESSION + LPM
+# ==========================================================================================
+
+# LPM:
+# lpm = smf.ols("binaryY ~ X1 + X2 + X3", data=data).fit()
+
+# LOGIT:
+# logit_model = smf.logit("binaryY ~ X1 + X2 + X3", data=data).fit()
+
+# print(logit_model.summary())
+
+# Odds ratio:
+# print(np.exp(logit_model.params))
+
+# Pseudo R²:
+# print(logit_model.prsquared)
+
+# Prediction:
+# pred_probs = logit_model.predict(data)
+# pred_class = (pred_probs > 0.5).astype(int)
+
+# cm = confusion_matrix(data["binaryY"], pred_class)
+# print(cm)
+
+# print("Accuracy:", accuracy_score(data["binaryY"], pred_class))
+
+# New observation:
+# new = pd.DataFrame({"X1":[...], "X2":[...], "X3":[...]})
+# print(logit_model.predict(new))
+
+# Generic:
+# “Coefficients represent log-odds.”
+# “Exponentiated coefficients represent odds ratios.”
+# “Pseudo R² provides model fit measure.”
+
+
+
+# ==========================================================================================
+# SECTION 19: UNIVERSAL INTERPRETATION BANK
+# ==========================================================================================
+
+# “The coefficient is positive/negative, suggesting a direct/inverse relationship.”
+# “The variable is statistically significant at conventional levels.”
+# “Holding other factors constant...”
+# “Results are economically meaningful.”
+# “Model diagnostics should be considered before final inference.”
+# “The null hypothesis is rejected / not rejected.”
+# “The explanatory variables jointly explain variation in the dependent variable.”
+
+
